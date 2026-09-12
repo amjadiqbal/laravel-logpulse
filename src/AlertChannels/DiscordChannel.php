@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 class DiscordChannel
 {
     protected string $webhookUrl;
+
     protected array $config;
 
     public function __construct(array $config = [])
@@ -23,6 +24,7 @@ class DiscordChannel
     {
         if (empty($this->webhookUrl)) {
             Log::warning('LogPulse: Discord webhook URL not configured');
+
             return false;
         }
 
@@ -34,27 +36,30 @@ class DiscordChannel
 
             if ($response->successful() || $response->status() === 204) {
                 Log::info("LogPulse: Discord alert sent for {$event->exception_class}");
+
                 return true;
             }
 
             Log::error("LogPulse: Discord alert failed — {$response->status()}: {$response->body()}");
+
             return false;
         } catch (\Exception $e) {
             Log::error("LogPulse: Discord alert exception — {$e->getMessage()}");
+
             return false;
         }
     }
 
     protected function buildPayload(LogPulseEvent $event, string $severity): array
     {
-        $color = match($severity) {
+        $color = match ($severity) {
             'critical' => 0xFF0000,
             'warning' => 0xFFA500,
             'info' => 0x36A64F,
             default => 0xCCCCCC,
         };
 
-        $emoji = match($severity) {
+        $emoji = match ($severity) {
             'critical' => '🚨',
             'warning' => '⚠️',
             'info' => 'ℹ️',
@@ -66,7 +71,7 @@ class DiscordChannel
         return [
             'embeds' => [
                 [
-                    'title' => "{$emoji} LOGPULSE ALERT — " . strtoupper($severity),
+                    'title' => "{$emoji} LOGPULSE ALERT — ".strtoupper($severity),
                     'description' => $event->message,
                     'color' => $color,
                     'fields' => [
@@ -107,7 +112,7 @@ class DiscordChannel
                         ],
                     ],
                     'footer' => [
-                        'text' => 'Laravel LogPulse • ' . config('app.name'),
+                        'text' => 'Laravel LogPulse • '.config('app.name'),
                     ],
                     'timestamp' => now()->toIso8601String(),
                 ],
@@ -122,6 +127,7 @@ class DiscordChannel
         }
 
         $lines = explode("\n", $stackTrace);
+
         return implode("\n", array_slice($lines, 0, 5));
     }
 }

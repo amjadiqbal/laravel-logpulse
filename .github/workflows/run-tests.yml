@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # require.php claims ^8.0|^8.1|^8.2|^8.3, but the dev/test tooling this repo
+        # actually pins (pestphp/pest ^2.0, orchestra/testbench ^9.0, larastan ^2.0|^3.0)
+        # needs PHP >=8.2 to install at all -- so that's the floor this CI can honestly test.
+        php: [8.2, 8.3]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer test
+      - run: vendor/bin/pint --test
+      - run: composer analyse

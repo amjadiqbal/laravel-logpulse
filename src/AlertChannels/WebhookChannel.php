@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Log;
 class WebhookChannel
 {
     protected string $webhookUrl;
+
     protected array $config;
+
     protected array $headers;
 
     public function __construct(array $config = [])
@@ -29,6 +31,7 @@ class WebhookChannel
     {
         if (empty($this->webhookUrl)) {
             Log::warning('LogPulse: Custom webhook URL not configured');
+
             return false;
         }
 
@@ -41,13 +44,16 @@ class WebhookChannel
 
             if ($response->successful()) {
                 Log::info("LogPulse: Custom webhook alert sent for {$event->exception_class}");
+
                 return true;
             }
 
             Log::error("LogPulse: Custom webhook failed — {$response->status()}: {$response->body()}");
+
             return false;
         } catch (\Exception $e) {
             Log::error("LogPulse: Custom webhook exception — {$e->getMessage()}");
+
             return false;
         }
     }
@@ -69,13 +75,13 @@ class WebhookChannel
                 'file' => $event->file,
                 'line' => $event->line,
                 'occurrence_count' => $event->occurrence_count,
-                'first_seen_at' => $event->first_seen_at?->toIso8601String(),
-                'last_seen_at' => $event->last_seen_at?->toIso8601String(),
+                'first_seen_at' => $event->first_seen_at->toIso8601String(),
+                'last_seen_at' => $event->last_seen_at->toIso8601String(),
                 'stack_trace' => $event->stack_trace,
                 'context' => $event->context,
                 'request_data' => $event->request_data,
             ],
-            'dashboard_url' => config('app.url') . config('logpulse.dashboard.path', '/logpulse'),
+            'dashboard_url' => config('app.url').config('logpulse.dashboard.path', '/logpulse'),
         ];
     }
 }

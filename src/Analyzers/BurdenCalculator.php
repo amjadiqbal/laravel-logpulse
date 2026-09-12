@@ -4,12 +4,12 @@
 
 namespace AmjadIqbal\LogPulse\Analyzers;
 
-use AmjadIqbal\LogPulse\Models\LogPulseEvent;
 use Illuminate\Support\Collection;
 
 class BurdenCalculator
 {
     protected array $weights;
+
     protected Collection $events;
 
     public function __construct()
@@ -77,10 +77,10 @@ class BurdenCalculator
     protected function calculateFrequencyScore(): float
     {
         $totalOccurrences = $this->events->sum('occurrence_count');
-        
+
         // Normalize based on expected thresholds
         $criticalThreshold = config('logpulse.thresholds.critical.count', 10);
-        
+
         if ($totalOccurrences <= 0) {
             return 0;
         }
@@ -88,7 +88,7 @@ class BurdenCalculator
         // Logarithmic scale to prevent extreme values
         $ratio = $totalOccurrences / max(1, $criticalThreshold);
         $score = log($ratio + 1, 2) / log(11, 2); // log base 2, normalized to 0-1
-        
+
         return min(1.0, $score);
     }
 
@@ -131,7 +131,7 @@ class BurdenCalculator
      */
     public function getInterpretation(int $score): array
     {
-        return match(true) {
+        return match (true) {
             $score >= 80 => [
                 'level' => 'critical',
                 'color' => 'red',

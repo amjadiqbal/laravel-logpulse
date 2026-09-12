@@ -1,5 +1,10 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
 // config/logpulse.php
 
 return [
@@ -112,10 +117,10 @@ return [
     |
     */
     'ignore_exceptions' => [
-        \Illuminate\Validation\ValidationException::class,
-        \Illuminate\Auth\AuthenticationException::class,
-        \Illuminate\Http\Exceptions\ThrottleRequestsException::class,
-        \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
+        ValidationException::class,
+        AuthenticationException::class,
+        ThrottleRequestsException::class,
+        NotFoundHttpException::class,
     ],
 
     /*

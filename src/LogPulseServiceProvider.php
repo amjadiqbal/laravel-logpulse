@@ -29,8 +29,12 @@ class LogPulseServiceProvider extends ServiceProvider
         );
 
         // Register singleton services
+        // LogPulseManager::__construct() takes no arguments — passing $app here made every
+        // resolution of the 'logpulse' singleton (app('logpulse'), the LogPulse facade, or
+        // anything type-hinting LogPulseManager) throw ArgumentCountError. Never caught by
+        // the test suite because no test resolves the manager through the container.
         $this->app->singleton('logpulse', function (Application $app) {
-            return new LogPulseManager($app);
+            return new LogPulseManager;
         });
     }
 
@@ -117,9 +121,15 @@ class LogPulseServiceProvider extends ServiceProvider
         // Listen to Laravel's log events
         Event::listen(MessageLogged::class, LogEventHandler::class);
 
-        // Listen to exception events
-        Event::listen(\Illuminate\Foundation\Events\ExceptionHandlerReported::class, 
-            Listeners\ExceptionReportedHandler::class
-        );
+        // A second listener for direct exception-handler events was registered here against
+        // Illuminate\Foundation\Events\ExceptionHandlerReported — a class that does not exist
+        // anywhere in laravel/framework — and AmjadIqbal\LogPulse\Listeners\
+        // ExceptionReportedHandler, which was never created (only LogEventHandler exists in
+        // src/Listeners/). ::class references don't need the class to exist at compile time,
+        // so this shipped without error; it would only have surfaced the first time Laravel's
+        // real exception handler actually reported something in a production app, as a fatal
+        // "class not found". Removed rather than invented — building real exception-handler
+        // integration (as opposed to the working log-event path above) is a feature, not a
+        // bug fix.
     }
 }

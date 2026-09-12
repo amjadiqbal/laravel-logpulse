@@ -13,14 +13,16 @@ use Illuminate\Support\Collection;
 class LogPulseManager
 {
     protected BurdenCalculator $burdenCalculator;
+
     protected FrequencyAnalyzer $frequencyAnalyzer;
+
     protected PatternMatcher $patternMatcher;
 
     public function __construct()
     {
-        $this->burdenCalculator = new BurdenCalculator();
-        $this->frequencyAnalyzer = new FrequencyAnalyzer();
-        $this->patternMatcher = new PatternMatcher();
+        $this->burdenCalculator = new BurdenCalculator;
+        $this->frequencyAnalyzer = new FrequencyAnalyzer;
+        $this->patternMatcher = new PatternMatcher;
     }
 
     /**
@@ -29,6 +31,7 @@ class LogPulseManager
     public function getBurdenScore(): int
     {
         $events = $this->getRecentEvents();
+
         return $this->burdenCalculator->calculate($events);
     }
 
@@ -57,6 +60,7 @@ class LogPulseManager
     public function detectPatterns(): array
     {
         $events = $this->getRecentEvents(15); // Last 15 minutes
+
         return $this->patternMatcher->analyze($events);
     }
 

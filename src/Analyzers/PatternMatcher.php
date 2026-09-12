@@ -4,14 +4,12 @@
 
 namespace AmjadIqbal\LogPulse\Analyzers;
 
-use AmjadIqbal\LogPulse\Models\LogPulseEvent;
 use Illuminate\Support\Collection;
-use Carbon\Carbon;
 
 class PatternMatcher
 {
     protected array $patterns = [];
-    
+
     public function __construct()
     {
         $this->registerDefaultPatterns();
@@ -26,31 +24,31 @@ class PatternMatcher
             'cascade_failure' => [
                 'name' => 'Cascade Failure',
                 'description' => 'Multiple different exceptions occurring in rapid succession',
-                'detector' => fn(Collection $events) => $this->detectCascadeFailure($events),
+                'detector' => fn (Collection $events) => $this->detectCascadeFailure($events),
                 'severity' => 'critical',
             ],
             'retry_storm' => [
                 'name' => 'Retry Storm',
                 'description' => 'Same exception occurring at exponentially increasing rates',
-                'detector' => fn(Collection $events) => $this->detectRetryStorm($events),
+                'detector' => fn (Collection $events) => $this->detectRetryStorm($events),
                 'severity' => 'warning',
             ],
             'dependency_outage' => [
                 'name' => 'Dependency Outage',
                 'description' => 'Connection/timeout exceptions from external services',
-                'detector' => fn(Collection $events) => $this->detectDependencyOutage($events),
+                'detector' => fn (Collection $events) => $this->detectDependencyOutage($events),
                 'severity' => 'critical',
             ],
             'resource_exhaustion' => [
                 'name' => 'Resource Exhaustion',
                 'description' => 'Memory, disk, or connection pool exhaustion pattern',
-                'detector' => fn(Collection $events) => $this->detectResourceExhaustion($events),
+                'detector' => fn (Collection $events) => $this->detectResourceExhaustion($events),
                 'severity' => 'critical',
             ],
             'degraded_performance' => [
                 'name' => 'Degraded Performance',
                 'description' => 'Increasing response times and timeout errors',
-                'detector' => fn(Collection $events) => $this->detectDegradedPerformance($events),
+                'detector' => fn (Collection $events) => $this->detectDegradedPerformance($events),
                 'severity' => 'warning',
             ],
         ];
@@ -83,8 +81,14 @@ class PatternMatcher
     protected function detectCascadeFailure(Collection $events): bool
     {
         $uniqueExceptions = $events->unique('exception_class')->count();
-        $totalEvents = $events->count();
-        
+        // Events are pre-aggregated by (exception_class, route) with an occurrence_count —
+        // the same field every other analyzer in this package (FrequencyAnalyzer,
+        // BurdenCalculator) treats as the real error volume. Counting the collection itself
+        // instead undercounts by however much aggregation already happened upstream: 4
+        // aggregated rows totalling 14 occurrences would otherwise read as "4 events", never
+        // reaching the threshold below no matter how much real traffic they represent.
+        $totalEvents = $events->sum('occurrence_count');
+
         // Cascade failure: many unique exceptions in a short period
         return $uniqueExceptions >= 3 && $totalEvents >= 10;
     }
@@ -95,34 +99,36 @@ class PatternMatcher
     protected function detectRetryStorm(Collection $events): bool
     {
         $grouped = $events->groupBy('exception_class');
-        
+
         foreach ($grouped as $exceptionGroup) {
-            if ($exceptionGroup->count() < 5) continue;
-            
+            if ($exceptionGroup->count() < 5) {
+                continue;
+            }
+
             $timestamps = $exceptionGroup->sortBy('created_at')
                 ->pluck('created_at')
                 ->toArray();
-            
+
             // Check if intervals between events are decreasing (exponential backoff pattern)
             $intervals = [];
             for ($i = 1; $i < count($timestamps); $i++) {
                 $intervals[] = $timestamps[$i]->diffInSeconds($timestamps[$i - 1]);
             }
-            
+
             // Retry storm: intervals are getting shorter
             if (count($intervals) >= 3) {
-                $firstHalf = array_slice($intervals, 0, floor(count($intervals) / 2));
-                $secondHalf = array_slice($intervals, floor(count($intervals) / 2));
-                
+                $firstHalf = array_slice($intervals, 0, (int) floor(count($intervals) / 2));
+                $secondHalf = array_slice($intervals, (int) floor(count($intervals) / 2));
+
                 $avgFirst = array_sum($firstHalf) / count($firstHalf);
                 $avgSecond = array_sum($secondHalf) / count($secondHalf);
-                
+
                 if ($avgFirst > 0 && $avgSecond < $avgFirst * 0.5) {
                     return true;
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -150,6 +156,7 @@ class PatternMatcher
                     return true;
                 }
             }
+
             return false;
         });
 
@@ -201,6 +208,7 @@ class PatternMatcher
                     return true;
                 }
             }
+
             return false;
         });
 
@@ -213,6 +221,7 @@ class PatternMatcher
     public function addPattern(string $key, array $pattern): self
     {
         $this->patterns[$key] = $pattern;
+
         return $this;
     }
 

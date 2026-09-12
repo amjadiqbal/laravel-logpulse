@@ -4,29 +4,33 @@
 
 namespace AmjadIqbal\LogPulse\Listeners;
 
-use AmjadIqbal\LogPulse\AlertChannels\SlackChannel;
 use AmjadIqbal\LogPulse\AlertChannels\DiscordChannel;
+use AmjadIqbal\LogPulse\AlertChannels\SlackChannel;
 use AmjadIqbal\LogPulse\AlertChannels\WebhookChannel;
 use AmjadIqbal\LogPulse\Analyzers\BurdenCalculator;
 use AmjadIqbal\LogPulse\Analyzers\FrequencyAnalyzer;
 use AmjadIqbal\LogPulse\Analyzers\PatternMatcher;
 use AmjadIqbal\LogPulse\Models\LogPulseEvent;
 use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class LogEventHandler
 {
     protected array $rateLimitCache = [];
+
     protected FrequencyAnalyzer $frequencyAnalyzer;
+
     protected PatternMatcher $patternMatcher;
+
     protected BurdenCalculator $burdenCalculator;
 
     public function __construct()
     {
-        $this->frequencyAnalyzer = new FrequencyAnalyzer();
-        $this->patternMatcher = new PatternMatcher();
-        $this->burdenCalculator = new BurdenCalculator();
+        $this->frequencyAnalyzer = new FrequencyAnalyzer;
+        $this->patternMatcher = new PatternMatcher;
+        $this->burdenCalculator = new BurdenCalculator;
     }
 
     /**
@@ -35,12 +39,12 @@ class LogEventHandler
     public function handle(MessageLogged $event): void
     {
         // Skip if rate limited
-        if (!$this->checkRateLimit()) {
+        if (! $this->checkRateLimit()) {
             return;
         }
 
         // Ignore non-error levels (configurable)
-        if (!in_array($event->level, ['error', 'critical', 'alert', 'emergency'])) {
+        if (! in_array($event->level, ['error', 'critical', 'alert', 'emergency'])) {
             return;
         }
 
@@ -70,7 +74,7 @@ class LogEventHandler
     protected function extractExceptionData(MessageLogged $event): array
     {
         $context = $event->context;
-        
+
         $exceptionClass = 'UnknownException';
         $file = null;
         $line = null;
@@ -91,7 +95,7 @@ class LogEventHandler
 
         // Extract route from context or request
         $route = $context['route'] ?? null;
-        if (!$route && app()->bound('request')) {
+        if (! $route && app()->bound('request')) {
             $request = app('request');
             $route = $request->path();
         }
@@ -103,7 +107,7 @@ class LogEventHandler
             'file' => $file ?? ($context['file'] ?? null),
             'line' => $line ?? ($context['line'] ?? null),
             'stack_trace' => $stackTrace,
-            'context' => array_filter($context, fn($key) => !in_array($key, ['exception', 'file', 'line']), ARRAY_FILTER_USE_KEY),
+            'context' => array_filter($context, fn ($key) => ! in_array($key, ['exception', 'file', 'line']), ARRAY_FILTER_USE_KEY),
             'request_data' => $this->sanitizeRequestData(),
         ];
     }
@@ -126,6 +130,7 @@ class LogEventHandler
                 'message' => $data['message'],
                 'context' => $data['context'],
             ]);
+
             return $existing->fresh();
         }
 
@@ -164,7 +169,7 @@ class LogEventHandler
         foreach ($analysis as $severity => $result) {
             if ($result['triggered']) {
                 $this->sendAlerts($event, $severity, $result);
-                
+
                 // Mark as alerted
                 $event->update([
                     'alert_status' => 'sent',
@@ -187,10 +192,10 @@ class LogEventHandler
 
         foreach ($channels as $channel) {
             try {
-                $sent = match($channel) {
-                    'slack' => (new SlackChannel())->send($event, $severity),
-                    'discord' => (new DiscordChannel())->send($event, $severity),
-                    'webhook' => (new WebhookChannel())->send($event, $severity),
+                $sent = match ($channel) {
+                    'slack' => (new SlackChannel)->send($event, $severity),
+                    'discord' => (new DiscordChannel)->send($event, $severity),
+                    'webhook' => (new WebhookChannel)->send($event, $severity),
                     default => false,
                 };
 
@@ -208,7 +213,7 @@ class LogEventHandler
      */
     protected function recordAlert(string $channel, string $severity, LogPulseEvent $event): void
     {
-        \Illuminate\Support\Facades\DB::table('logpulse_alerts')->insert([
+        DB::table('logpulse_alerts')->insert([
             'channel' => $channel,
             'severity' => $severity,
             'message' => $event->message,
@@ -230,13 +235,13 @@ class LogEventHandler
     {
         $maxPerSecond = config('logpulse.rate_limiting.max_events_per_second', 100);
         $second = now()->format('YmdHis');
-        
-        if (!isset($this->rateLimitCache[$second])) {
+
+        if (! isset($this->rateLimitCache[$second])) {
             $this->rateLimitCache = [$second => 0];
         }
-        
+
         $this->rateLimitCache[$second]++;
-        
+
         return $this->rateLimitCache[$second] <= $maxPerSecond;
     }
 
@@ -245,15 +250,15 @@ class LogEventHandler
      */
     protected function isCircuitBreakerOpen(): bool
     {
-        if (!config('logpulse.circuit_breaker.enabled', true)) {
+        if (! config('logpulse.circuit_breaker.enabled', true)) {
             return false;
         }
 
-        $breaker = \Illuminate\Support\Facades\DB::table('logpulse_circuit_breaker')
+        $breaker = DB::table('logpulse_circuit_breaker')
             ->where('channel', 'global')
             ->first();
 
-        if (!$breaker || !$breaker->is_open) {
+        if (! $breaker || ! $breaker->is_open) {
             return false;
         }
 
@@ -262,7 +267,7 @@ class LogEventHandler
         }
 
         // Cooldown expired, reset breaker
-        \Illuminate\Support\Facades\DB::table('logpulse_circuit_breaker')
+        DB::table('logpulse_circuit_breaker')
             ->where('channel', 'global')
             ->update([
                 'is_open' => false,
@@ -278,7 +283,7 @@ class LogEventHandler
     protected function isIgnoredException(string $exceptionClass): bool
     {
         $ignoredExceptions = config('logpulse.ignore_exceptions', []);
-        
+
         foreach ($ignoredExceptions as $ignored) {
             if ($exceptionClass === $ignored || Str::is($ignored, $exceptionClass)) {
                 return true;
@@ -294,7 +299,7 @@ class LogEventHandler
     protected function isIgnoredRoute(string $route): bool
     {
         $ignoredRoutes = config('logpulse.ignore_routes', []);
-        
+
         foreach ($ignoredRoutes as $pattern) {
             if (Str::is($pattern, $route)) {
                 return true;
@@ -309,7 +314,7 @@ class LogEventHandler
      */
     protected function generateAggregateId(string $exceptionClass, ?string $route): string
     {
-        return md5($exceptionClass . '|' . ($route ?? 'no-route'));
+        return md5($exceptionClass.'|'.($route ?? 'no-route'));
     }
 
     /**
@@ -317,7 +322,7 @@ class LogEventHandler
      */
     protected function mapLevelToSeverity(string $level): string
     {
-        return match($level) {
+        return match ($level) {
             'emergency', 'alert', 'critical' => 'critical',
             'error' => 'error',
             'warning' => 'warning',
@@ -331,12 +336,12 @@ class LogEventHandler
      */
     protected function sanitizeRequestData(): ?array
     {
-        if (!app()->bound('request')) {
+        if (! app()->bound('request')) {
             return null;
         }
 
         $request = app('request');
-        
+
         $data = [
             'method' => $request->method(),
             'url' => $request->fullUrl(),
@@ -350,7 +355,7 @@ class LogEventHandler
             'token', 'api_key', 'secret', 'credit_card', 'ssn',
         ]);
 
-        if (!empty($input)) {
+        if (! empty($input)) {
             $data['input'] = $input;
         }
 

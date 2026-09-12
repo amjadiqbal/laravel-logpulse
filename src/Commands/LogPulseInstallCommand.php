@@ -6,18 +6,33 @@ namespace AmjadIqbal\LogPulse\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use function Laravel\Prompts\{intro, outro, info, warning, error, table, spin, progress, select, multiselect, confirm, text, password, note, pause};
+
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\multiselect;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\pause;
+use function Laravel\Prompts\progress;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
 
 class LogPulseInstallCommand extends Command
 {
+    // --no-interaction is a global Symfony Console option (-n); redeclaring it here as a
+    // command-specific option threw "An option named "no-interaction" already exists." on every
+    // invocation. $this->option('no-interaction') still works without declaring it.
     protected $signature = 'logpulse:install
-                            {--force : Force overwrite of existing configuration}
-                            {--no-interaction : Skip interactive prompts}';
-    
+                            {--force : Force overwrite of existing configuration}';
+
     protected $description = 'Install and configure Laravel LogPulse with an interactive wizard';
 
     private array $config = [];
-    private array $steps = [];
+
     private int $currentStep = 0;
 
     public function handle(): int
@@ -25,7 +40,7 @@ class LogPulseInstallCommand extends Command
         // ─── WELCOME SCREEN ────────────────────────────
         $this->showWelcomeScreen();
 
-        if (!$this->option('no-interaction')) {
+        if (! $this->option('no-interaction')) {
             return $this->runInteractiveWizard();
         }
 
@@ -35,51 +50,57 @@ class LogPulseInstallCommand extends Command
     private function showWelcomeScreen(): void
     {
         intro('🫀 Welcome to Laravel LogPulse');
-        
+
         note(
-            "     ⚡ Proactive Log Monitoring for Laravel\n" .
-            "     📊 Real-time Error Detection & Alerting\n" .
-            "     🎯 Catch Issues Before Your Customers Do\n" .
-            "     🔧 By Amjad Iqbal (@amjadiqbal)"
+            "     ⚡ Proactive Log Monitoring for Laravel\n".
+            "     📊 Real-time Error Detection & Alerting\n".
+            "     🎯 Catch Issues Before Your Customers Do\n".
+            '     🔧 By Amjad Iqbal (@amjadiqbal)'
         );
 
-        pause('Press ENTER to begin the installation wizard...');
+        // Was unconditional, so `logpulse:install --no-interaction` still blocked on a prompt
+        // before the no-interaction check further down even ran — defeating the flag's whole
+        // purpose for CI/scripted installs.
+        if (! $this->option('no-interaction')) {
+            pause('Press ENTER to begin the installation wizard...');
+        }
     }
 
     private function runInteractiveWizard(): int
     {
         // Step 1: Notification Channels
         $this->stepNotificationChannels();
-        
+
         // Step 2: Alert Thresholds
         $this->stepAlertThresholds();
-        
+
         // Step 3: Environment Presets
         $this->stepEnvironmentPreset();
-        
+
         // Step 4: Dashboard Setup
         $this->stepDashboardSetup();
-        
+
         // Step 5: Database Configuration
         $this->stepDatabaseSetup();
-        
+
         // Step 6: Self-Protection
         $this->stepCircuitBreaker();
-        
+
         // Step 7: Testing
         $this->stepTestConfiguration();
-        
+
         // ─── SUMMARY & CONFIRMATION ────────────────────
         $this->showSummary();
-        
+
         $confirmed = confirm(
             label: 'Ready to apply this configuration?',
             default: true,
             hint: 'Configuration file will be published to config/logpulse.php'
         );
 
-        if (!$confirmed) {
+        if (! $confirmed) {
             warning('Installation cancelled. Run `php artisan logpulse:install` to try again.');
+
             return self::FAILURE;
         }
 
@@ -154,7 +175,7 @@ class LogPulseInstallCommand extends Command
         $thresholds = [];
 
         foreach ($severities as $severity) {
-            $emoji = match($severity) {
+            $emoji = match ($severity) {
                 'critical' => '🔴',
                 'warning' => '🟡',
                 'info' => '🔵',
@@ -163,12 +184,12 @@ class LogPulseInstallCommand extends Command
             $thresholds[$severity] = [
                 'count' => (int) text(
                     label: "{$emoji} {$severity} threshold — Error count",
-                    placeholder: match($severity) {
+                    placeholder: match ($severity) {
                         'critical' => '10',
                         'warning' => '50',
                         'info' => '100',
                     },
-                    default: match($severity) {
+                    default: match ($severity) {
                         'critical' => '10',
                         'warning' => '50',
                         'info' => '100',
@@ -179,7 +200,7 @@ class LogPulseInstallCommand extends Command
                 'window' => (int) text(
                     label: "{$emoji} {$severity} time window (minutes)",
                     placeholder: '5',
-                    default: match($severity) {
+                    default: match ($severity) {
                         'critical' => '5',
                         'warning' => '15',
                         'info' => '30',
@@ -214,7 +235,7 @@ class LogPulseInstallCommand extends Command
         $this->config['preset'] = $preset;
 
         // Show preset summary
-        $presetDetails = match($preset) {
+        $presetDetails = match ($preset) {
             'saas-webhook' => [
                 'Focuses on external API failures & webhook timeouts',
                 'Lower thresholds on /api/webhook routes',
@@ -243,6 +264,7 @@ class LogPulseInstallCommand extends Command
                 'Full manual control over all thresholds',
                 'No pre-configured patterns applied',
             ],
+            default => throw new \InvalidArgumentException("Unknown preset: {$preset}"),
         };
 
         info('Preset optimization includes:');
@@ -404,7 +426,7 @@ class LogPulseInstallCommand extends Command
                 callback: function () {
                     // Simulate sending test alerts
                     sleep(2);
-                    
+
                     // In reality, this would call the alert channels
                     return true;
                 }
@@ -457,7 +479,7 @@ class LogPulseInstallCommand extends Command
 
                 // Update .env with LogPulse settings if needed
                 $this->updateEnvironmentFile();
-                
+
                 sleep(1); // Visual feedback
             }
         );
@@ -467,7 +489,7 @@ class LogPulseInstallCommand extends Command
 
         info('Next steps:');
         info('  1. Review config/logpulse.php for fine-tuning');
-        info('  2. Visit ' . ($this->config['dashboard_path'] ?? '/logpulse') . ' for the health dashboard');
+        info('  2. Visit '.($this->config['dashboard_path'] ?? '/logpulse').' for the health dashboard');
         info('  3. Run `php artisan logpulse:status` to verify everything');
         info('  4. Star the repo: ⭐ github.com/amjadiqbal/laravel-logpulse');
 
@@ -480,11 +502,11 @@ class LogPulseInstallCommand extends Command
     {
         $this->currentStep++;
         $this->newLine();
-        
+
         // Calculate progress percentage
         $totalSteps = 7;
         $percentage = round(($this->currentStep / $totalSteps) * 100);
-        
+
         info("Step {$this->currentStep}/{$totalSteps} [{$percentage}%]");
         intro($title);
         note($subtitle);
@@ -498,21 +520,21 @@ class LogPulseInstallCommand extends Command
     private function updateEnvironmentFile(): void
     {
         $envUpdates = [];
-        
+
         if (isset($this->config['slack_webhook'])) {
             $envUpdates['LOGPULSE_SLACK_WEBHOOK'] = $this->config['slack_webhook'];
         }
-        
+
         if (isset($this->config['discord_webhook'])) {
             $envUpdates['LOGPULSE_DISCORD_WEBHOOK'] = $this->config['discord_webhook'];
         }
 
-        if (!empty($envUpdates)) {
+        if (! empty($envUpdates)) {
             // Append to .env
             $envContent = File::get(base_path('.env'));
-            
+
             foreach ($envUpdates as $key => $value) {
-                if (!str_contains($envContent, $key)) {
+                if (! str_contains($envContent, $key)) {
                     File::append(base_path('.env'), "\n{$key}={$value}");
                 }
             }
@@ -523,7 +545,7 @@ class LogPulseInstallCommand extends Command
     {
         // Non-interactive mode for CI/CD pipelines
         $this->info('Running in non-interactive mode...');
-        
+
         $this->config = [
             'channels' => ['slack'],
             'thresholds' => [

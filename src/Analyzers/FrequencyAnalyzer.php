@@ -5,12 +5,13 @@
 namespace AmjadIqbal\LogPulse\Analyzers;
 
 use AmjadIqbal\LogPulse\Models\LogPulseEvent;
-use Illuminate\Support\Collection;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class FrequencyAnalyzer
 {
     protected array $thresholds;
+
     protected array $windowSizes;
 
     public function __construct()
@@ -73,7 +74,7 @@ class FrequencyAnalyzer
     public function getTrend(string $exceptionClass, ?string $route = null): array
     {
         $now = Carbon::now();
-        
+
         $currentWindow = $this->countEventsInWindow(
             $exceptionClass,
             $route,
@@ -83,7 +84,7 @@ class FrequencyAnalyzer
         $previousWindow = LogPulseEvent::where('exception_class', $exceptionClass)
             ->where('last_seen_at', '>=', $now->copy()->subMinutes(10))
             ->where('last_seen_at', '<', $now->copy()->subMinutes(5))
-            ->when($route, fn($q) => $q->where('route', $route))
+            ->when($route, fn ($q) => $q->where('route', $route))
             ->sum('occurrence_count');
 
         if ($currentWindow === 0 && $previousWindow === 0) {
@@ -120,11 +121,19 @@ class FrequencyAnalyzer
             ->get()
             ->map(function ($event) {
                 $trend = $this->getTrend($event->exception_class, $event->route);
+
+                // total_count and last_seen are selectRaw() aggregate aliases, not real
+                // model columns, so they're not in LogPulseEvent's @property block and
+                // PHPStan can't know they exist on the returned rows.
                 return [
                     'exception_class' => $event->exception_class,
                     'route' => $event->route ?? 'N/A',
+                    // @phpstan-ignore property.notFound
                     'count' => $event->total_count,
-                    'last_seen_at' => $event->last_seen->diffForHumans(),
+                    // $event->last_seen is a plain string here, not the Carbon instance the
+                    // model's $casts would give a real last_seen_at column.
+                    // @phpstan-ignore property.notFound
+                    'last_seen_at' => Carbon::parse($event->last_seen)->diffForHumans(),
                     'trend_direction' => $trend['direction'],
                     'trend_icon' => $trend['icon'],
                 ];

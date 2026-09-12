@@ -5,11 +5,17 @@
 namespace AmjadIqbal\LogPulse\Commands;
 
 use Illuminate\Console\Command;
-use function Laravel\Prompts\{intro, outro, info, note, select, text, spin, progress};
+
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\spin;
 
 class LogPulseQuickstartCommand extends Command
 {
     protected $signature = 'logpulse:quickstart';
+
     protected $description = 'Quick-start wizard for common LogPulse configurations';
 
     public function handle(): int
@@ -71,24 +77,28 @@ class LogPulseQuickstartCommand extends Command
     protected function applyOptimizations(string $appType, string $teamSize, string $alertPreference): void
     {
         $configPath = config_path('logpulse.php');
-        
-        if (!file_exists($configPath)) {
+
+        if (! file_exists($configPath)) {
             $this->call('vendor:publish', ['--tag' => 'logpulse-config']);
         }
 
         $config = file_get_contents($configPath);
 
-        // Apply app type optimizations
-        $config = match($appType) {
+        // Apply app type optimizations. select()'s return type is string|int in general
+        // (PHPStan can't narrow it to just this command's five option keys), so an
+        // unmatched-value default is required for the match to be provably exhaustive —
+        // and is genuinely safer than trusting only these five keys ever reach here.
+        $config = match ($appType) {
             'api' => $this->optimizeForApi($config),
             'web' => $this->optimizeForWeb($config),
             'spa' => $this->optimizeForSpa($config),
             'microservice' => $this->optimizeForMicroservice($config),
             'ecommerce' => $this->optimizeForEcommerce($config),
+            default => throw new \InvalidArgumentException("Unknown application type: {$appType}"),
         };
 
         // Apply team size optimizations
-        $config = match($teamSize) {
+        $config = match ($teamSize) {
             'solo' => str_replace(
                 "'max_alerts_per_minute' => 5",
                 "'max_alerts_per_minute' => 10",

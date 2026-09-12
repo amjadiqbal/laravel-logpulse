@@ -4,10 +4,35 @@
 
 namespace AmjadIqbal\LogPulse\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
+/**
+ * The table name is set dynamically in the constructor from config
+ * (logpulse.storage.table), so Larastan can't discover these columns from a real
+ * migration/`$table` the way it normally would — hence the explicit @property block.
+ *
+ * @property int $id
+ * @property string $aggregate_id
+ * @property string $exception_class
+ * @property string $severity
+ * @property string $message
+ * @property string|null $route
+ * @property string|null $file
+ * @property int|null $line
+ * @property string|null $stack_trace
+ * @property array<string,mixed>|null $context
+ * @property array<string,mixed>|null $request_data
+ * @property int $occurrence_count
+ * @property \Illuminate\Support\Carbon $first_seen_at
+ * @property \Illuminate\Support\Carbon $last_seen_at
+ * @property string $alert_status
+ * @property \Illuminate\Support\Carbon|null $alerted_at
+ * @property string|null $alert_channel
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
+ */
 class LogPulseEvent extends Model
 {
     protected $table;
@@ -84,6 +109,7 @@ class LogPulseEvent extends Model
     public function getShortExceptionAttribute(): string
     {
         $parts = explode('\\', $this->exception_class);
+
         return end($parts);
     }
 
@@ -97,6 +123,7 @@ class LogPulseEvent extends Model
         }
 
         $lines = explode("\n", $this->stack_trace);
+
         return implode("\n", array_slice($lines, 0, 3));
     }
 
@@ -106,6 +133,7 @@ class LogPulseEvent extends Model
     public function isCritical(): bool
     {
         $threshold = config('logpulse.thresholds.critical.count', 10);
+
         return $this->occurrence_count >= $threshold;
     }
 }

@@ -6,18 +6,24 @@ namespace AmjadIqbal\LogPulse\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use function Laravel\Prompts\{select, confirm, spin, info, warning};
+
+use function Laravel\Prompts\confirm;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\warning;
 
 class LogPulseSimulateCommand extends Command
 {
     protected $signature = 'logpulse:simulate';
+
     protected $description = 'Simulate error patterns to test LogPulse alerting';
 
     public function handle(): void
     {
         info('🧪 LogPulse Error Simulator');
         info('Generate test errors to verify your alert configuration');
-        
+
         $scenario = select(
             label: 'Choose a simulation scenario',
             options: [
@@ -35,16 +41,20 @@ class LogPulseSimulateCommand extends Command
             hint: 'Your configured alert channels may receive notifications'
         );
 
-        if (!$confirmed) {
+        if (! $confirmed) {
             warning('Simulation cancelled.');
+
             return;
         }
 
-        match($scenario) {
+        // select()'s return type is string|int in general, so an unmatched-value default
+        // is required for the match to be provably exhaustive.
+        match ($scenario) {
             'burst' => $this->simulateBurst(),
             'cascade' => $this->simulateCascade(),
             'single' => $this->simulateSingle(),
             'pattern' => $this->simulatePattern(),
+            default => throw new \InvalidArgumentException("Unknown simulation scenario: {$scenario}"),
         };
 
         info('✅ Simulation complete! Check your alert channels.');
@@ -71,7 +81,7 @@ class LogPulseSimulateCommand extends Command
     private function simulateCascade(): void
     {
         $delays = [100000, 200000, 400000, 800000, 1600000]; // Microseconds
-        
+
         foreach ($delays as $delay) {
             for ($i = 0; $i < 10; $i++) {
                 Log::error('Simulated GuzzleHttp Timeout: API endpoint unreachable', [
@@ -96,7 +106,7 @@ class LogPulseSimulateCommand extends Command
     private function simulatePattern(): void
     {
         for ($i = 0; $i < 12; $i++) {
-            Log::error('Simulated Redis connection timeout — retry ' . ($i + 1), [
+            Log::error('Simulated Redis connection timeout — retry '.($i + 1), [
                 'exception' => 'Predis\Connection\ConnectionException',
                 'logpulse_simulated' => true,
             ]);

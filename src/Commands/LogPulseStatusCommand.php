@@ -4,22 +4,26 @@
 
 namespace AmjadIqbal\LogPulse\Commands;
 
-use Illuminate\Console\Command;
-use AmjadIqbal\LogPulse\Models\LogPulseEvent;
 use AmjadIqbal\LogPulse\Analyzers\BurdenCalculator;
 use AmjadIqbal\LogPulse\Analyzers\FrequencyAnalyzer;
-use function Laravel\Prompts\{table, info, warning, error};
+use AmjadIqbal\LogPulse\Models\LogPulseEvent;
+use Illuminate\Console\Command;
+
+use function Laravel\Prompts\table;
+use function Laravel\Prompts\warning;
 
 class LogPulseStatusCommand extends Command
 {
     protected $signature = 'logpulse:status
                             {--json : Output as JSON for scripting}';
+
     protected $description = 'Display current LogPulse system status';
 
     public function handle(): void
     {
         if ($this->option('json')) {
             $this->outputJson();
+
             return;
         }
 
@@ -34,16 +38,16 @@ class LogPulseStatusCommand extends Command
 
         // Configuration Status
         $this->displayConfigurationStatus();
-        
+
         // Event Statistics
         $this->displayEventStatistics();
-        
+
         // Alert Channel Status
         $this->displayChannelStatus();
-        
+
         // Circuit Breaker Status
         $this->displayCircuitBreakerStatus();
-        
+
         // Quick Health Check
         $this->displayQuickHealth();
     }
@@ -54,7 +58,7 @@ class LogPulseStatusCommand extends Command
         $this->line(str_repeat('─', 40));
 
         $config = config('logpulse');
-        
+
         table(
             headers: ['Setting', 'Value'],
             rows: [
@@ -63,10 +67,10 @@ class LogPulseStatusCommand extends Command
                 ['Dashboard', ($config['dashboard']['enabled'] ?? false) ? 'Enabled' : 'Disabled'],
                 ['Storage', $config['storage']['driver'] ?? 'database'],
                 ['Circuit Breaker', ($config['circuit_breaker']['enabled'] ?? false) ? 'Active' : 'Inactive'],
-                ['Critical Threshold', ($config['thresholds']['critical']['count'] ?? '?') . ' errors / ' . ($config['thresholds']['critical']['window'] ?? '?') . 'min'],
+                ['Critical Threshold', ($config['thresholds']['critical']['count'] ?? '?').' errors / '.($config['thresholds']['critical']['window'] ?? '?').'min'],
             ]
         );
-        
+
         $this->newLine();
     }
 
@@ -130,14 +134,14 @@ class LogPulseStatusCommand extends Command
         $this->line(str_repeat('─', 40));
 
         $breakerConfig = config('logpulse.circuit_breaker', []);
-        
+
         table(
             headers: ['Setting', 'Value'],
             rows: [
                 ['Status', ($breakerConfig['enabled'] ?? false) ? '<fg=green>Active</>' : '<fg=yellow>Inactive</>'],
                 ['Max Alerts/Min', $breakerConfig['max_alerts_per_minute'] ?? 'N/A'],
-                ['Cooldown', ($breakerConfig['cooldown_minutes'] ?? 'N/A') . ' minutes'],
-                ['Backoff', ($breakerConfig['backoff_multiplier'] ?? 'N/A') . 'x'],
+                ['Cooldown', ($breakerConfig['cooldown_minutes'] ?? 'N/A').' minutes'],
+                ['Backoff', ($breakerConfig['backoff_multiplier'] ?? 'N/A').'x'],
             ]
         );
 
@@ -150,17 +154,17 @@ class LogPulseStatusCommand extends Command
         $this->line(str_repeat('─', 40));
 
         $events = LogPulseEvent::where('last_seen_at', '>=', now()->subMinutes(30))->get();
-        $calculator = new BurdenCalculator();
+        $calculator = new BurdenCalculator;
         $score = $calculator->calculate($events);
         $interpretation = $calculator->getInterpretation($score);
 
         $this->line("  Burden Score: {$score}% — {$interpretation['emoji']} {$interpretation['text']}");
         $this->line("  Action: {$interpretation['action']}");
-        
+
         $this->newLine();
 
         // Top exceptions warning
-        $analyzer = new FrequencyAnalyzer();
+        $analyzer = new FrequencyAnalyzer;
         $topExceptions = $analyzer->getTopExceptions(3, 5);
 
         if ($topExceptions->isNotEmpty()) {
@@ -174,11 +178,11 @@ class LogPulseStatusCommand extends Command
 
     protected function isChannelConfigured(string $channel): bool
     {
-        return match($channel) {
-            'slack' => !empty(config('logpulse.slack_webhook_url')),
-            'discord' => !empty(config('logpulse.discord_webhook_url')),
-            'mail' => !empty(config('logpulse.alert_email')),
-            'webhook' => !empty(config('logpulse.custom_webhook_url')),
+        return match ($channel) {
+            'slack' => ! empty(config('logpulse.slack_webhook_url')),
+            'discord' => ! empty(config('logpulse.discord_webhook_url')),
+            'mail' => ! empty(config('logpulse.alert_email')),
+            'webhook' => ! empty(config('logpulse.custom_webhook_url')),
             default => false,
         };
     }
@@ -186,8 +190,8 @@ class LogPulseStatusCommand extends Command
     protected function outputJson(): void
     {
         $events = LogPulseEvent::where('last_seen_at', '>=', now()->subMinutes(30))->get();
-        $calculator = new BurdenCalculator();
-        
+        $calculator = new BurdenCalculator;
+
         $status = [
             'timestamp' => now()->toIso8601String(),
             'burden_score' => $calculator->calculate($events),

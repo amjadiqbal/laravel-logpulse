@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 class SlackChannel
 {
     protected string $webhookUrl;
+
     protected array $config;
 
     public function __construct(array $config = [])
@@ -23,6 +24,7 @@ class SlackChannel
     {
         if (empty($this->webhookUrl)) {
             Log::warning('LogPulse: Slack webhook URL not configured');
+
             return false;
         }
 
@@ -34,27 +36,30 @@ class SlackChannel
 
             if ($response->successful()) {
                 Log::info("LogPulse: Slack alert sent for {$event->exception_class}");
+
                 return true;
             }
 
             Log::error("LogPulse: Slack alert failed — {$response->status()}: {$response->body()}");
+
             return false;
         } catch (\Exception $e) {
             Log::error("LogPulse: Slack alert exception — {$e->getMessage()}");
+
             return false;
         }
     }
 
     protected function buildPayload(LogPulseEvent $event, string $severity): array
     {
-        $color = match($severity) {
+        $color = match ($severity) {
             'critical' => '#FF0000',
             'warning' => '#FFA500',
             'info' => '#36A64F',
             default => '#CCCCCC',
         };
 
-        $emoji = match($severity) {
+        $emoji = match ($severity) {
             'critical' => '🚨',
             'warning' => '⚠️',
             'info' => 'ℹ️',
@@ -69,9 +74,9 @@ class SlackChannel
             'attachments' => [
                 [
                     'color' => $color,
-                    'pretext' => "{$emoji} *LOGPULSE ALERT — " . strtoupper($severity) . "*",
+                    'pretext' => "{$emoji} *LOGPULSE ALERT — ".strtoupper($severity).'*',
                     'title' => $event->exception_class,
-                    'title_link' => config('app.url') . config('logpulse.dashboard.path', '/logpulse'),
+                    'title_link' => config('app.url').config('logpulse.dashboard.path', '/logpulse'),
                     'text' => "_{$event->message}_",
                     'fields' => [
                         [
@@ -116,6 +121,7 @@ class SlackChannel
 
         // Take first 5 lines of stack trace for readability
         $lines = explode("\n", $stackTrace);
+
         return implode("\n", array_slice($lines, 0, 5));
     }
 }
