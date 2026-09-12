@@ -1,0 +1,100 @@
+{
+    "name": "amjadiqbal/laravel-logpulse",
+    "description": "Proactive log health monitoring & intelligent alerting for Laravel applications. Catch production issues before your customers do.",
+    "type": "library",
+    "license": "MIT",
+    "version": "1.0.0",
+    "keywords": [
+        "laravel",
+        "logging",
+        "monitoring",
+        "alerts",
+        "devops",
+        "health-check",
+        "error-tracking",
+        "slack",
+        "discord",
+        "production-monitoring",
+        "log-pulse",
+        "amjadiqbal"
+    ],
+    "authors": [
+        {
+            "name": "Amjad Iqbal",
+            "email": "hi@amjad.com.pk",
+            "homepage": "https://amjad.com.pk",
+            "role": "Developer"
+        }
+    ],
+    "homepage": "https://github.com/AmjadIqbal/laravel-logpulse",
+    "support": {
+        "issues": "https://github.com/amjadiqbal/laravel-logpulse/issues",
+        "source": "https://github.com/amjadiqbal/laravel-logpulse",
+        "docs": "https://logpulse.amjadiqbal.dev",
+        "security": "https://github.com/amjadiqbal/laravel-logpulse/security/policy"
+    },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/amjadiqbal"
+        },
+        {
+            "type": "buymeacoffee",
+            "url": "https://www.buymeacoffee.com/amjadiqbal"
+        }
+    ],
+    "require": {
+        "php": "^8.0|^8.1|^8.2|^8.3",
+        "laravel/framework": "^9.0|^10.0|^11.0",
+        "laravel/prompts": "^0.1.15",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.0",
+        "orchestra/testbench": "^7.0|^8.0|^9.0",
+        "pestphp/pest": "^1.22|^2.0",
+        "pestphp/pest-plugin-laravel": "^1.4|^2.0",
+        "phpstan/phpstan": "^1.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "AmjadIqbal\\LogPulse\\": "src/",
+            "AmjadIqbal\\LogPulse\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "AmjadIqbal\\LogPulse\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        },
+        "laravel": {
+            "providers": [
+                "AmjadIqbal\\LogPulse\\LogPulseServiceProvider"
+            ],
+            "aliases": {
+                "LogPulse": "AmjadIqbal\\LogPulse\\Facades\\LogPulse"
+            }
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php artisan vendor:publish --tag=logpulse-config --ansi"
+        ],
+        "analyse": "vendor/bin/phpstan analyse",
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "format": "vendor/bin/pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
