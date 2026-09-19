@@ -44,10 +44,10 @@
         }
     ],
     "require": {
-        "php": "^8.0|^8.1|^8.2|^8.3",
-        "laravel/framework": "^9.0|^10.0|^11.0",
-        "laravel/prompts": "^0.1.15",
-        "guzzlehttp/guzzle": "^7.0"
+        "php": "^8.0|^8.1|^8.2|^8.3|^8.4|^8.5",
+        "laravel/framework": "^9.0|^10.0|^11.0|^12.0|^13.0",
+        "laravel/prompts": "^0.1.15|^0.2|^0.3",
+        "guzzlehttp/guzzle": "^7.0|^8.0"
     },
     "require-dev": {
         "larastan/larastan": "^2.0|^3.0",

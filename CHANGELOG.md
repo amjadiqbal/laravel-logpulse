@@ -5,6 +5,34 @@ All notable changes to `laravel-logpulse` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-09-19
+
+Found and fixed during manual integration testing against a fresh Laravel 13 / PHP 8.5 install
+(before publishing to Laravel News) — the first time this package was installed into a real app
+alongside the other 5 packages in this batch, rather than tested in isolation via Testbench.
+
+### Fixed
+- **`composer require amjadiqbal/laravel-logpulse` failed on the current Laravel release.**
+  `php` was capped at `^8.0|^8.1|^8.2|^8.3` (excluding 8.4/8.5) and `laravel/framework` at
+  `^9.0|^10.0|^11.0` (excluding 12/13). Widened both to also accept `^8.4|^8.5` and `^12.0|^13.0`
+  respectively — full Pest suite (11 tests) still passes unchanged.
+- **`guzzlehttp/guzzle: "^7.0"` conflicted with a fresh Laravel 13 app's actual dependency
+  resolution.** Laravel 13 allows `guzzlehttp/guzzle ^7.8.2 || ^8.0`, and a clean
+  `composer create-project laravel/laravel` resolves it to `8.2.0`. This package's own code
+  never instantiates Guzzle's `Client` directly — it only sends alerts via Laravel's `Http`
+  facade (`AlertChannels/SlackChannel.php`, `DiscordChannel.php`, `WebhookChannel.php`) — so the
+  `^7.0` ceiling was a stale, unnecessary direct constraint that blocked co-installing this
+  package with a current Laravel app. Widened to `^7.0|^8.0`.
+- **`laravel/prompts: "^0.1.15"` was narrower than what current Laravel actually ships.** A
+  fresh Laravel 13 app locks `laravel/prompts` at `v0.3.24`. Widened to
+  `^0.1.15|^0.2|^0.3` to match.
+
+Manually verified after the fixes: `composer require` into a real Laravel 13 app (alongside all
+5 other packages in this testing pass, confirming no cross-package conflicts), `logpulse-config`
+and `logpulse-migrations` vendor:publish tags, `php artisan migrate`, `logpulse:status`,
+`app('logpulse')`/facade resolution (the previously-fixed singleton), and a real `Log::error()`
+call confirmed to land a row in `logpulse_events` via the `MessageLogged` event listener.
+
 ## [Unreleased]
 
 First commit under version control (2026-09-12) — the code existed only on local disk before
