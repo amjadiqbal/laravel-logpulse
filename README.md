@@ -146,6 +146,21 @@ MIT License. See [LICENSE.md](LICENSE.md).
 
 See [CHANGELOG.md](CHANGELOG.md).
 
+## Support & Community
+
+### Custom Development
+[Hire me on Upwork](https://www.upwork.com/freelancers/amjadkhatri) for:
+- Package integration
+- Custom feature development
+- Technical consultation
+- Project implementation
+
+### Community Support
+- [Discord Community](https://discord.com/channels/1352854772859932702/1352854916690874388)
+- [GitHub Issues](https://github.com/amjadiqbal/laravel-logpulse/issues)
+
+For priority support and enterprise solutions, please reach out via Upwork for direct assistance.
+
 ## Author
 
 **Amjad Iqbal** — [amjad.com.pk](https://amjad.com.pk) · [hi@amjad.com.pk](mailto:hi@amjad.com.pk) · [GitHub](https://github.com/AmjadIqbal)
